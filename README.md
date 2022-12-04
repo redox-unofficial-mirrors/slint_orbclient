@@ -8,7 +8,7 @@ SPDX-License-Identifier: MIT
 [Slint](https://slint-ui.com/) platform support based on [OrbClient](https://gitlab.redox-os.org/redox-os/orbclient). Can be used to run a `Slint` application on [Redox](https://redox-os.org/). *Originally located on https://codeberg.org/flovansl/co_sl.*
 
 [![MIT licensed](https://img.shields.io/badge/license-MIT-blue.svg)](../../LICENSES/MIT.txt)
-<!-- [![docs](https://img.shields.io/badge/docs-latest-orange.svg)](https://flovansl.codeberg.page/coop_sl/snapshots/docs/slint_orbclient/) -->
+[![docs](https://img.shields.io/badge/docs-latest-orange.svg)](https://docs.rs/slint_orbclient/0.1.0/slint_orbclient/)
 
 ## Example
 
