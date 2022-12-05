@@ -4,14 +4,12 @@
 use std::cell::*;
 use std::rc::*;
 use std::slice;
+use std::time::Instant;
 
 use orbclient::{Renderer, Window};
 
 use crate::color::*;
 use crate::event_reader::*;
-
-static INITIAL_INSTANT: once_cell::sync::OnceCell<instant::Instant> =
-    once_cell::sync::OnceCell::new();
 
 /// Used to configure the platform window.
 #[derive(Clone, Default, Debug)]
@@ -115,6 +113,7 @@ impl From<Config> for OrbClientPlatform {
                     .unwrap(),
             ),
             event_reader: EventReader::default(),
+            start: Instant::now(),
         }
     }
 }
@@ -124,6 +123,7 @@ pub struct OrbClientPlatform {
     slint_window: RefCell<Rc<slint::platform::software_renderer::MinimalSoftwareWindow<1>>>,
     orb_window: RefCell<Window>,
     event_reader: EventReader,
+    start: Instant,
 }
 
 impl OrbClientPlatform {
@@ -159,8 +159,7 @@ impl slint::platform::Platform for OrbClientPlatform {
     }
 
     fn duration_since_start(&self) -> core::time::Duration {
-        let the_beginning = *INITIAL_INSTANT.get_or_init(instant::Instant::now);
-        instant::Instant::now() - the_beginning
+        self.start.elapsed()
     }
 
     fn run_event_loop(&self) {
