@@ -1,5 +1,24 @@
+
+
 export App := Window {
-    Text {
-        text: "Hello from Slint";
+    i_container := Rectangle {  
+        width: 100px;
+        height: 32px;
+        background: black;
+
+        Text {
+            text: "Press";
+            color: white;
+        }
+
+        i_touch := TouchArea {}
+
+        states [  
+            pressed when i_touch.pressed : {
+                i_container.background: white;
+            }
+        ]
+
+        animate background { duration: 300ms; }
     }
 }
