@@ -3,6 +3,7 @@
 
 use std::cell::*;
 use std::rc::*;
+use std::slice;
 
 use orbclient::{Renderer, Window};
 
@@ -20,7 +21,6 @@ pub struct Config {
     width: u32,
     height: u32,
     title: String,
-    events_async: bool,
     resizable: bool,
     borderless: bool,
     uncloseable: bool,
@@ -57,12 +57,6 @@ impl Config {
         self
     }
 
-    /// If set to `false` the event reading will blocking the window loop until an events occurs.
-    pub fn events_async(mut self, events_async: bool) -> Self {
-        self.events_async = events_async;
-        self
-    }
-
     /// If set to `true` the window is resizable.
     pub fn resizable(mut self, resizable: bool) -> Self {
         self.resizable = resizable;
@@ -84,11 +78,7 @@ impl Config {
 
 impl From<Config> for OrbClientPlatform {
     fn from(config: Config) -> Self {
-        let mut flags = vec![];
-
-        if config.events_async {
-            flags.push(orbclient::WindowFlag::Async);
-        }
+        let mut flags = vec![orbclient::WindowFlag::Async];
 
         if config.resizable {
             flags.push(orbclient::WindowFlag::Resizable);
@@ -182,37 +172,61 @@ impl slint::platform::Platform for OrbClientPlatform {
             .as_ref()
             .set_size(slint::PhysicalSize::new(width, height));
 
-        let mut work_buffer = vec![Color(0); width as usize * height as usize];
-
         'events: loop {
             slint::platform::update_timers_and_animations();
-            self.slint_window.borrow().draw_if_needed(|renderer| {
-                renderer.render(
-                    &mut work_buffer,
-                    self.slint_window.borrow().size().width as usize,
-                );
 
-                unsafe {
-                    core::ptr::copy(
-                        work_buffer.as_ptr(),
-                        self.orb_window.borrow_mut().data_mut().as_mut_ptr() as *mut Color,
-                        work_buffer.len(),
+            {
+                let slint_window = self.slint_window.borrow();
+
+                slint_window.draw_if_needed(|renderer| {
+                    let width = slint_window.size().width as usize;
+                    let height = slint_window.size().height as usize;
+                    renderer.render(
+                        unsafe {
+                            slice::from_raw_parts_mut(
+                                self.orb_window.borrow_mut().data_mut().as_mut_ptr() as *mut Color,
+                                width * height
+                            )
+                        },
+                        width
                     );
+
+                    self.orb_window.borrow_mut().sync();
+                });
+
+                for event in self.event_reader.read(&mut self.orb_window.borrow_mut()) {
+                    match event {
+                        Event::WindowEvent(e) => slint_window.dispatch_event(e),
+                        Event::Resize(s) => slint_window.set_size(s),
+                        Event::Quit => break 'events,
+                    }
+                }
+
+                if slint_window.has_active_animations() {
+                    continue;
+                }
+            }
+
+            #[cfg(target_os = "redox")]
+            {
+                use std::{io, os::unix::io::AsRawFd};
+
+                let timeout = match slint::platform::duration_until_next_timer_update() {
+                    Some(duration) => duration.as_millis().try_into().unwrap(),
+                    None => -1,
                 };
 
-                self.orb_window.borrow_mut().sync();
-            });
-
-            for event in self.event_reader.read(&mut self.orb_window.borrow_mut()) {
-                match event {
-                    Event::WindowEvent(e) => self.slint_window.borrow().dispatch_event(e),
-                    Event::Resize(s) => {
-                        self.slint_window.borrow().set_size(s);
-
-                        work_buffer.resize(s.width as usize * s.height as usize, Color(0));
+                let mut fds = [
+                    libc::pollfd {
+                        fd: self.orb_window.borrow().as_raw_fd(),
+                        events: libc::POLLIN,
+                        revents: 0,
                     }
-                    Event::Quit => break 'events,
-                }
+                ];
+                let _nevents = unsafe {
+                    libc::poll(fds.as_mut_ptr(), fds.len().try_into().unwrap(), timeout)
+                };
+                //TODO: use nevents or check for error (nevents == -1)?
             }
         }
     }
