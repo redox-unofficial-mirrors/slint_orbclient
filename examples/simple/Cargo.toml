@@ -1,0 +1,16 @@
+[package]
+name = "simple"
+version = "0.1.0"
+edition = "2021"
+build = "build.rs"
+
+[[bin]]
+name = "simple"
+path = "src/main.rs"
+
+[dependencies]
+slint = { version = "0.3.2", default-features = false, features = ["compat-0-3-0"] }
+slint_orbclient = { path = "../../"}
+
+[build-dependencies]
+slint-build = "0.3.2"
