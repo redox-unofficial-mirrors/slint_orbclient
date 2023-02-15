@@ -3,6 +3,10 @@ SPDX-FileCopyrightText: 2022 Redox OS Developers <info@redox-os.org>
 SPDX-License-Identifier: MIT
 -->
 
+# Current state 
+
+**slint_orbclient is no longer needed. Slint works now on Redox out of the box. This repository is now archived.**
+
 # slint_orbclient
 
 [Slint](https://slint-ui.com/) platform support based on [OrbClient](https://gitlab.redox-os.org/redox-os/orbclient). Can be used to run a `Slint` application on [Redox](https://redox-os.org/). *Originally located on https://codeberg.org/flovansl/co_sl.*
